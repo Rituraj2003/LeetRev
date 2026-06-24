@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Problem {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  title      String
+  difficulty String
+  topics     String[]
+  url        String
+  createdAt  DateTime @default(now())
+
+  solutions Solution[]
+  review    Review?
+
+  @@index([topics])
+}
+
+model Solution {
+  id        String   @id @default(cuid())
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  code      String   @db.Text
+  language  String
+  commitSha String   @unique
+  solvedAt  DateTime
+  timeMs    Float?
+  spaceMb   Float?
+  createdAt DateTime @default(now())
+
+  @@index([solvedAt])
+}
+
+enum ReviewStatus {
+  NEW
+  LEARNING
+  REVIEW
+  MASTERED
+}
+
+model Review {
+  id           String       @id @default(cuid())
+  problemId    String       @unique
+  problem      Problem      @relation(fields: [problemId], references: [id])
+  nextReviewAt DateTime
+  intervalDays Int          @default(1)
+  easeFactor   Float        @default(2.5)
+  reps         Int          @default(0)
+  status       ReviewStatus @default(NEW)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([nextReviewAt])
+}
+
