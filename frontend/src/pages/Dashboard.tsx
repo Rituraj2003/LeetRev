@@ -15,7 +15,7 @@ export default function ReportPage() {
         const data = await getYesterdayReport();
 
         setReport(data);
-      } catch (error) {
+      } catch {
         setError("Failed to load report");
       } finally {
         setloading(false);

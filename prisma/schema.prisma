@@ -22,7 +22,6 @@ model Problem {
   createdAt  DateTime @default(now())
 
   solutions Solution[]
-  review    Review?
 
   @@index([topics])
 }
@@ -33,12 +32,18 @@ model Solution {
   problem   Problem  @relation(fields: [problemId], references: [id])
   code      String   @db.Text
   language  String
-  commitSha String   @unique
+  commitSha String
   solvedAt  DateTime
   timeMs    Float?
   spaceMb   Float?
   createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 
+  aiAnalysis Json?
+  review     Review?
+
+  @@unique([userId, commitSha])
   @@index([solvedAt])
 }
 
@@ -51,8 +56,8 @@ enum ReviewStatus {
 
 model Review {
   id           String       @id @default(cuid())
-  problemId    String       @unique
-  problem      Problem      @relation(fields: [problemId], references: [id])
+  solutionId   String       @unique
+  solution     Solution     @relation(fields: [solutionId], references: [id])
   nextReviewAt DateTime
   intervalDays Int          @default(1)
   easeFactor   Float        @default(2.5)
@@ -64,3 +69,18 @@ model Review {
   @@index([nextReviewAt])
 }
 
+model User {
+  id                String    @id @default(cuid())
+  lastSyncAt        DateTime?
+  githubId          String    @unique
+  githubUsername    String    @unique
+  githubAccessToken String?
+  githubRepoOwner   String?
+  githubRepoName    String?
+  email             String?   @unique
+  avatarUrl         String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  solutions Solution[]
+}

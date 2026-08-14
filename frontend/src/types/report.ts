@@ -1,4 +1,5 @@
 export interface ProblemSummary {
+  id:string
   slug: string;
   title: string;
   difficulty: "Easy" | "Medium" | "Hard";

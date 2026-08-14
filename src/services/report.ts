@@ -1,6 +1,6 @@
 import prisma from "../db.js";
 
-export async function getYesterdayReport() {
+export async function getYesterdayReport(userId:string) {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
 
@@ -16,6 +16,7 @@ export async function getYesterdayReport() {
         gte: startOfYesterday,
         lte: endOfYesterday,
       },
+      userId:userId,
     },
     include: {
       problem: true,
@@ -36,6 +37,7 @@ export async function getYesterdayReport() {
     uniqueSolutions.push(solution);
   }
   const problems = uniqueSolutions.map((solution) => ({
+    id:solution.problem.id,
     slug: solution.problem.slug,
     title: solution.problem.title,
     difficulty: solution.problem.difficulty,

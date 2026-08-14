@@ -1,16 +1,33 @@
 import { rateReview } from "../services/api";
 import type { DueReview } from "../types/review";
+import { useNavigate } from "react-router-dom";
 
 type ReviewCardProps = {
   review: DueReview;
-  onRated:()=> void;
+  onRated: (reviewId: string) => void;
 };
 
-export default function ReviewCard({ review ,onRated}: ReviewCardProps) {
+export default function ReviewCard({ review, onRated }: ReviewCardProps) {
   const dueDate = new Date(review.nextReviewAt).toLocaleDateString("en-IN");
-  const title = review.problem.title;
-  const url = review.problem.url;
-  const difficulty = review.problem.difficulty;
+  const problem = review.problem ?? review.solution?.problem;
+  const navigate = useNavigate();
+
+  if (!problem) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-[#A8553F]">
+        This review is missing its problem details. Restart the backend and refresh this page.
+      </div>
+    );
+  }
+
+  const title = problem.title;
+  const url = problem.url;
+  const difficulty = problem.difficulty;
+  const problemId = problem.id;
+
+  function handleWorkspace() {
+    navigate(`/problems/${problemId}`);
+  }
 
   const difficultyDot: Record<string, string> = {
     Easy: "bg-[#5B8266]",
@@ -20,7 +37,7 @@ export default function ReviewCard({ review ,onRated}: ReviewCardProps) {
   const dotClass = difficultyDot[difficulty] ?? "bg-[#8A8578]";
   async function handleRating(rating: number) {
     await rateReview(review.id, rating);
-    onRated();
+    onRated(review.id);
   }
 
   return (
@@ -28,7 +45,8 @@ export default function ReviewCard({ review ,onRated}: ReviewCardProps) {
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
 
       <div className="flex-1 min-w-0">
-        <h2 className="text-[15px] font-medium text-[#1C1B19] group-hover:text-[#2B3A55] transition-colors">
+        <h2 className="cursor-pointer text-[15px] font-medium text-[#1C1B19] group-hover:text-[#2B3A55] transition-colors"
+        onClick={handleWorkspace}>
           {title}
         </h2>
         <p className="text-xs text-[#8A8578] mt-1">

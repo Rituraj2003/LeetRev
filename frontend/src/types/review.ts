@@ -2,7 +2,10 @@ export interface DueReview{
     id: string
     status:string
     nextReviewAt: string
-    problem:ReviewProblem
+    problem?:ReviewProblem
+    solution?: {
+      problem: ReviewProblem
+    }
 }
 
 export interface ReviewProblem{

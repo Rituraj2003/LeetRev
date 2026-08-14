@@ -1,9 +1,15 @@
+import { useNavigate } from "react-router-dom";
 import type { ProblemSummary } from "../types/report";
 
 type ProblemCardProps = {
   problem: ProblemSummary;
 };
 export default function ProblemCard({ problem }: ProblemCardProps) {
+  const navigate=useNavigate();
+  function handleWorkspace(){
+    navigate(`/problems/${problem.id}`);
+  }
+
   const solvedTime = new Date(problem.solvedAt).toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -20,7 +26,7 @@ export default function ProblemCard({ problem }: ProblemCardProps) {
   return (
     <div className="group border border-gray-200/70 rounded-xl p-5 bg-white hover:border-gray-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-start justify-between gap-4">
-        <h3 className="text-lg font-semibold  text-gray-900 leading-snug">
+        <h3 onClick={handleWorkspace} className="text-lg cursor-pointer font-semibold  text-gray-900 leading-snug">
           {problem.title}
         </h3>
         <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset ${badgeClass}`}>
