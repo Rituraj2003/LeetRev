@@ -1,6 +1,12 @@
 import prisma from "../db.js";
 const BASE_URL = "https://api.github.com";
 
+const DEFAULT_HEADERS = {
+  "User-Agent": "LeetRev-App",
+  accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+};
+
 export async function fetchRecentCommits(
   accessToken: string,
   repoOwner: string,
@@ -8,9 +14,8 @@ export async function fetchRecentCommits(
   since?: string,
 ) {
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
   const url = since
     ? `${BASE_URL}/repos/${repoOwner}/${repoName}/commits?since=${since}`
@@ -32,12 +37,11 @@ export async function fetchRecentCommits(
   return commits;
 }
 
-export async function fetchCommitFiles(sha: string, accessToken: string ,repoOwner:string,repoName:string) {
+export async function fetchCommitFiles(sha: string, accessToken: string, repoOwner: string, repoName: string) {
   const url = `${BASE_URL}/repos/${repoOwner}/${repoName}/commits/${sha}`;
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
   const res = await fetch(url, { headers });
   if (!res.ok) {
@@ -69,12 +73,11 @@ export function parseFileName(filename: string) {
   return { slug: folder, language };
 }
 
-export async function fetchReadme(slug: string, accessToken: string,repoOwner:string,repoName:string) {
+export async function fetchReadme(slug: string, accessToken: string, repoOwner: string, repoName: string) {
   const url = `${BASE_URL}/repos/${repoOwner}/${repoName}/contents/${slug}/README.md`;
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
   const res = await fetch(url, { headers });
 
@@ -111,12 +114,11 @@ export function parseReadMe(content: string) {
   return { title, difficulty, topics, url };
 }
 
-export async function fetchFileContent(filePath: string, accessToken: string,repoOwner:string,repoName:string) {
+export async function fetchFileContent(filePath: string, accessToken: string, repoOwner: string, repoName: string) {
   const url = `${BASE_URL}/repos/${repoOwner}/${repoName}/contents/${filePath}`;
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
   const res = await fetch(url, { headers });
 
@@ -126,13 +128,13 @@ export async function fetchFileContent(filePath: string, accessToken: string,rep
   const content = Buffer.from(data.content, "base64").toString("utf-8");
   return content;
 }
+
 export async function fetchUserRepositories(accessToken: string) {
   const url = `${BASE_URL}/user/repos?per_page=100&sort=updated`;
 
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
 
   const res = await fetch(url, { headers });
@@ -161,9 +163,8 @@ export async function verifyRepository(
   const url = `${BASE_URL}/repos/${owner}/${repo}`;
 
   const headers = {
+    ...DEFAULT_HEADERS,
     authorization: `Bearer ${accessToken}`,
-    accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
   };
 
   const res = await fetch(url, { headers });
@@ -191,8 +192,6 @@ export async function ingest(userId: string) {
     throw new Error("GitHub repository not selected");
   }
 
-  // A new user starts with only the previous 24 hours. Later syncs resume from
-  // their last successful sync, so old repository history is never re-imported.
   const syncStartedAt = new Date();
   const firstSyncSince = new Date(user.createdAt);
   firstSyncSince.setDate(firstSyncSince.getDate() - 1);
@@ -206,7 +205,7 @@ export async function ingest(userId: string) {
   let solutionFilesProcessed = 0;
 
   for (const commit of commits) {
-    const files = await fetchCommitFiles(commit.sha, user.githubAccessToken,user.githubRepoOwner,user.githubRepoName);
+    const files = await fetchCommitFiles(commit.sha, user.githubAccessToken, user.githubRepoOwner, user.githubRepoName);
     const cppfile = files.find((f: any) => f.filename.endsWith(".cpp"));
 
     if (!cppfile) {
@@ -222,9 +221,7 @@ export async function ingest(userId: string) {
     const { timeMs, spaceMb } = await parseCommitMessage(commit.commit.message);
     const solvedAt = new Date(commit.commit.author.date);
 
-    // Fetching ReadMe
-
-    const readmecontent = await fetchReadme(slug, user.githubAccessToken,user.githubRepoOwner,user.githubRepoName);
+    const readmecontent = await fetchReadme(slug, user.githubAccessToken, user.githubRepoOwner, user.githubRepoName);
     const { title, difficulty, topics, url } = readmecontent
       ? parseReadMe(readmecontent)
       : { title: slug, difficulty: "Unknown", topics: [], url: "" };
@@ -250,10 +247,10 @@ export async function ingest(userId: string) {
 
     const solution = await prisma.solution.upsert({
       where: {
-        userId_commitSha:{
-          userId:userId,
-          commitSha:commit.sha
-        }
+        userId_commitSha: {
+          userId: userId,
+          commitSha: commit.sha,
+        },
       },
       update: {},
       create: {
