@@ -197,9 +197,19 @@ export async function ingest(userId: string) {
   }
 
   const syncStartedAt = new Date();
-  const firstSyncSince = new Date(user.createdAt);
-  firstSyncSince.setDate(firstSyncSince.getDate() - 1);
-  const since = user.lastSyncAt || firstSyncSince;
+
+  // If user has 0 solutions in database, look back 30 days to fetch all recent LeetCode solutions
+  const existingSolutionsCount = await prisma.solution.count({ where: { userId } });
+  
+  let since: Date | undefined;
+  if (existingSolutionsCount === 0 || !user.lastSyncAt) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    since = thirtyDaysAgo;
+  } else {
+    since = user.lastSyncAt;
+  }
+
   const commits = await fetchRecentCommits(
     user.githubAccessToken,
     user.githubRepoOwner,

@@ -4,13 +4,14 @@ import jwt from "jsonwebtoken";
 
 const router = Router();
 
-const clientId = process.env.GITHUB_CLIENT_ID!;
-const clientSecret = process.env.GITHUB_CLIENT_SECRET!;
-const callbackURI = process.env.GITHUB_CALLBACK_URL!;
-const secret = process.env.JWT_SECRET!;
-const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+function getSecret() {
+  return (process.env.JWT_SECRET || "default_leetrev_jwt_secret_key").trim();
+}
 
 router.get("/github", async (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID?.trim() || "";
+  const callbackURI = process.env.GITHUB_CALLBACK_URL?.trim() || "";
+
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", callbackURI);
@@ -21,6 +22,12 @@ router.get("/github", async (req, res) => {
 
 router.get("/github/callback", async (req, res) => {
   try {
+    const clientId = process.env.GITHUB_CLIENT_ID?.trim() || "";
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET?.trim() || "";
+    const callbackURI = process.env.GITHUB_CALLBACK_URL?.trim() || "";
+    const rawFrontendUrl = process.env.FRONTEND_URL?.trim() || "http://localhost:5173";
+    const frontendUrl = rawFrontendUrl.replace(/\/$/, "");
+
     const code = req.query.code;
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "Missing authorization code from GitHub" });
@@ -87,11 +94,10 @@ router.get("/github/callback", async (req, res) => {
       },
     });
 
+    const secret = getSecret();
     const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "7d" });
 
-    // Clean up frontendUrl trailing slash if any
-    const cleanFrontendUrl = frontendUrl.replace(/\/$/, "");
-    const redirectUrl = new URL(`${cleanFrontendUrl}/auth/callback`);
+    const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
     redirectUrl.searchParams.set("token", token);
 
     return res.redirect(redirectUrl.toString());

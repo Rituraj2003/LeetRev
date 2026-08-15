@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { clearAuthToken } from "../services/api";
 
 const navItems = [
   {
@@ -70,8 +71,18 @@ export default function Sidebar() {
       </nav>
 
       {/* footer */}
-      <div className="px-6 py-5 border-t border-[#E8E4DA]">
+      <div className="px-6 py-4 border-t border-[#E8E4DA] space-y-2">
         <p className="text-[11px] text-[#8A8578]">synced from GitHub</p>
+        <button
+          type="button"
+          onClick={() => {
+            clearAuthToken();
+            window.location.href = "/login";
+          }}
+          className="text-xs text-[#A8553F] hover:underline font-medium block"
+        >
+          Sign out
+        </button>
       </div>
 
     </aside>
