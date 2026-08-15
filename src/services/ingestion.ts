@@ -7,6 +7,11 @@ const DEFAULT_HEADERS = {
   "X-GitHub-Api-Version": "2022-11-28",
 };
 
+const SUPPORTED_EXTENSIONS = new Set([
+  "cpp", "cc", "cxx", "py", "py3", "java", "js", "ts", 
+  "c", "cs", "go", "rs", "kt", "swift", "rb", "php", "scala"
+]);
+
 export async function fetchRecentCommits(
   accessToken: string,
   repoOwner: string,
@@ -68,8 +73,8 @@ export function parseFileName(filename: string) {
 
   if (!folder || !file) return null;
 
-  const ext = file.split(".").pop();
-  const language = ext || "unknown";
+  const ext = file.split(".").pop() || "unknown";
+  const language = ext.toLowerCase();
   return { slug: folder, language };
 }
 
@@ -86,7 +91,6 @@ export async function fetchReadme(slug: string, accessToken: string, repoOwner: 
   }
 
   const data = (await res.json()) as any;
-  // GitHub returns file content as base64 encoded string
   const content = Buffer.from(data.content, "base64").toString("utf-8");
   return content;
 }
@@ -206,19 +210,24 @@ export async function ingest(userId: string) {
 
   for (const commit of commits) {
     const files = await fetchCommitFiles(commit.sha, user.githubAccessToken, user.githubRepoOwner, user.githubRepoName);
-    const cppfile = files.find((f: any) => f.filename.endsWith(".cpp"));
+    
+    // Support all programming language solution files (.cpp, .py, .java, .js, .ts, etc.)
+    const solutionFile = files.find((f: any) => {
+      const ext = f.filename.split(".").pop()?.toLowerCase();
+      return ext && SUPPORTED_EXTENSIONS.has(ext);
+    });
 
-    if (!cppfile) {
+    if (!solutionFile) {
       continue;
     }
 
-    const fileInfo = await parseFileName(cppfile.filename);
+    const fileInfo = parseFileName(solutionFile.filename);
     if (!fileInfo) {
       continue;
     }
 
     const { slug, language } = fileInfo;
-    const { timeMs, spaceMb } = await parseCommitMessage(commit.commit.message);
+    const { timeMs, spaceMb } = parseCommitMessage(commit.commit.message);
     const solvedAt = new Date(commit.commit.author.date);
 
     const readmecontent = await fetchReadme(slug, user.githubAccessToken, user.githubRepoOwner, user.githubRepoName);
@@ -227,7 +236,7 @@ export async function ingest(userId: string) {
       : { title: slug, difficulty: "Unknown", topics: [], url: "" };
 
     const code = await fetchFileContent(
-      cppfile.filename,
+      solutionFile.filename,
       user.githubAccessToken,
       user.githubRepoOwner,
       user.githubRepoName,
